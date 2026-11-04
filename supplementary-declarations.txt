@@ -1,0 +1,210 @@
+SUPPLEMENTARY MATERIAL
+Obligation declarations for "What the Trace Graph Owes:
+Traceability Debt as Unsatisfied Path Obligations"
+
+This file contains the obligation sets evaluated in Section VII, written in the
+declarative notation of Figure 1. They are published clause by clause so that a
+disagreement about the reported numbers can be located in a declaration rather
+than in a result.
+
+Clause vocabulary (Table II):
+  FROM       the population: artifact type and predicate
+  TO         the admissible terminal artifact types
+  VIA        admissible link sequences, one line per route; ? marks optional
+  TARGET     an individual item or an aggregate
+  DEPTH      the classification attribute and the per-class depth
+  QUANTIFY   coverage (downstream) or justification (upstream)
+  BASELINE   which baseline each hop is read in
+  AGREE      attribute values that must agree along the path
+  EXCEPT     the typed exception, its condition and its discharge duty
+  DISCHARGE  existential, or joint with a side condition
+  SOURCE     the clause or internal process item it derives from
+
+Standard text is licensed and is not reproduced here. SOURCE names the clause.
+
+
+===============================================================================
+1. AUTOMOTIVE  --  power window subject
+===============================================================================
+
+OBLIGATION sys_req_refined_to_sw
+  FROM      SysRequirement
+  TO        SwRequirement
+  VIA       -
+  VIA       ArchElement
+  TARGET    individual
+  QUANTIFY  coverage
+  BASELINE  per hop, as released
+  DISCHARGE existential
+  SOURCE    "Automotive SPICE Guidelines 3.8.2.4"
+  NOTE      Both routes discharge the obligation; supplying both is redundant.
+
+OBLIGATION safety_req_verified
+  FROM      Requirement[asil != QM]
+  TO        TestCase
+  VIA       ArchElement, UnitDesign
+  TARGET    individual | group
+  DEPTH     BY asil
+  QUANTIFY  coverage
+  AGREE     asil ALONG path
+  EXCEPT    not_product_characteristic REQUIRES justification
+  DISCHARGE existential
+  SOURCE    "ASPICE 4.0 SWE.1, SWE.6; rating rule TAC.RL.1"
+
+OBLIGATION asil_decomposition_complete
+  FROM      Requirement[asil != QM]
+  TO        Requirement
+  VIA       allocation
+  QUANTIFY  coverage
+  DISCHARGE joint
+            CARDINALITY all declared parts present
+            CONDITION   children's asil recompose to the parent's
+            CONDITION   targets declared independent
+  EXCEPT    decomposition_declared REQUIRES annotation of the form X(Y)
+                                   AND an independence record
+  SOURCE    "ISO 26262-9:2018 cl. 5"
+
+OBLIGATION element_assurance_agreement
+  FROM      Requirement[asil != QM]
+  TO        ArchElement
+  VIA       allocation
+  AGREE     asil BETWEEN requirement AND allocated element
+  DISCHARGE existential
+  SOURCE    "SWE-PR internal tailoring; ISO 26262-6"
+
+OBLIGATION nothing_unauthorised_implemented
+  FROM      SwRequirement
+  TO        CustomerRequirement
+  VIA       SysRequirement
+  QUANTIFY  justification
+  EXCEPT    derived REQUIRES justification
+  DISCHARGE existential
+  SOURCE    "customer supplier agreement"
+
+
+===============================================================================
+2. AIRBORNE  --  landing gear position indication subject
+===============================================================================
+
+OBLIGATION cert_req_to_evidence
+  FROM      CertRequirement
+  TO        TestCase | AnalysisReport | InspectionRecord | SimilarityCase
+  VIA       SysRequirement, ItemRequirement
+  TARGET    individual | group
+  QUANTIFY  coverage
+  DISCHARGE existential
+  SOURCE    "CS-25 means of compliance; ARP4754A"
+  NOTE      The admissible terminal follows the declared means of compliance.
+
+OBLIGATION derived_requirement_reported
+  FROM      Requirement[derived = true]
+  TO        SafetyAssessmentRecord
+  QUANTIFY  coverage
+  DISCHARGE existential
+  SOURCE    "DO-178C objectives 5.1.1 b, 5.2.1 b"
+  NOTE      The duty is to identify the derived requirement AND report it to
+            the system safety assessment process. A derived flag without a
+            review record does not discharge it.
+
+OBLIGATION no_unjustified_requirement
+  FROM      Requirement[level != Certification]
+  TO        Requirement
+  VIA       parent
+  QUANTIFY  justification
+  EXCEPT    derived REQUIRES a safety assessment record
+  DISCHARGE existential
+  SOURCE    "DO-178C 5.1.1 b, 5.2.1 b; ARP4754A"
+
+OBLIGATION dal_agreement
+  FROM      Requirement[dal IN {A,B,C,D}]
+  TO        Requirement
+  VIA       parent
+  AGREE     dal ALONG path
+  DISCHARGE existential
+  SOURCE    "ARP4754A development assurance level assignment"
+
+
+===============================================================================
+3. MEDICAL  --  pulse oximeter subject
+===============================================================================
+
+OBLIGATION hazard_control_chain
+  FROM      Hazard
+  TO        VerificationRecord
+  VIA       RiskControl, Requirement
+  QUANTIFY  coverage
+  DISCHARGE joint
+            CARDINALITY every control named by the hazard
+            CONDITION   each control resolves to an existing requirement
+            CONDITION   each control resolves to an existing verification
+  SOURCE    "IEC 62304 cl. 7.3.3; ISO 14971"
+  NOTE      A field containing prose in place of identifiers does not resolve.
+            Evaluation is over referents, not over non-emptiness.
+
+OBLIGATION sw_req_traceable_to_a_source
+  FROM      SwRequirement
+  TO        SysRequirement | RiskControl | RegulatoryRequirement |
+            UsabilityRequirement | InterfaceRequirement | OperationalConstraint
+  QUANTIFY  justification
+  DISCHARGE existential
+  SOURCE    "IEC 62304 cl. 5.2.6"
+  NOTE      The clause widens the admissible sources; it is not an exception.
+            An unparented requirement still fails.
+
+OBLIGATION class_graded_chain
+  FROM      SwRequirement
+  TO        TestCase
+  VIA       ArchElement
+  VIA       ArchElement, DetailedDesign
+  DEPTH     BY softwareSafetyClass
+            CLASS A  requirement -> test
+            CLASS B  requirement -> architecture -> test
+            CLASS C  requirement -> architecture -> detailed design -> test
+  TARGET    individual | group
+  QUANTIFY  coverage
+  DISCHARGE existential
+  SOURCE    "IEC 62304 cl. 5.3, 5.4, 7.3.3 (class-dependent applicability)"
+
+
+===============================================================================
+4. DRONOLOGY  --  public dataset subject
+===============================================================================
+
+No normative source governs this project. The obligation below states the
+chain the project's own documentation describes, and is declared here so that
+the reported figures can be recomputed.
+
+OBLIGATION feature_realised_in_code
+  FROM      Feature | Requirement | DesignDefinition
+  TO        SourceFile
+  VIA       Requirement?, DesignDefinition, SubTask?
+  VIA       DesignDefinition, SubTask?
+  TARGET    individual | group
+  QUANTIFY  coverage
+  DISCHARGE existential
+  SOURCE    "project convention: code is traced to design definitions either
+             directly or via tasks"
+
+OBLIGATION status_agreement
+  FROM      Artifact[status = Closed]
+  TO        Artifact
+  VIA       child
+  AGREE     status ALONG path
+  DISCHARGE existential
+  SOURCE    "project convention"
+
+
+===============================================================================
+NOTES ON EVALUATION
+===============================================================================
+
+Link-pair evaluation, reported in Section VII as the comparison point, tests
+only whether the FROM item carries a link of the terminal type directly. It
+ignores VIA, TARGET, DEPTH, QUANTIFY, AGREE, EXCEPT and DISCHARGE.
+
+Counts of artifacts, not of links, are reported throughout. An item whose
+descendants carry the evidence is counted once.
+
+Nesting: where an ancestor and its descendant both fail the same obligation,
+repaying the descendant discharges the ancestor. Section VII reports both the
+raw count and the count of independent repayment items.
